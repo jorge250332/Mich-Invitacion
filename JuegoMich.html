@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invitación ⚾</title>
+
+<style>
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+#mensaje {
+    position: absolute;
+    top: 40%;
+    width: 100%;
+    text-align: center;
+    font-size: 38px;
+    color: white;
+    display: none;
+    animation: fadeIn 1s ease forwards;
+    text-shadow: 0 0 20px rgba(0,0,0,0.8);
+}
+
+@keyframes fadeIn {
+    from {opacity:0; transform: scale(0.8);}
+    to {opacity:1; transform: scale(1);}
+}
+</style>
+</head>
+
+<body>
+
+<div id="mensaje">Mich… ¿vemos el partido juntos? </div>
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// IMÁGENES
+const monkeyImg = new Image();
+monkeyImg.src = "mono.png";
+
+const bgImg = new Image();
+bgImg.src = "Fondo.png";
+
+// MONO
+let monkey = {
+    x: canvas.width / 2,
+    y: canvas.height - 180,
+    size: 120,
+    swing: 0,
+    swinging: false
+};
+
+// PELOTA
+let ball = {
+    x: Math.random() * canvas.width,
+    y: -50,
+    radius: 12,
+    speedY: 6,
+    speedX: 0,
+    hit: false
+};
+
+// CONTROLES (mouse + touch)
+document.addEventListener("mousemove", e => {
+    monkey.x = e.clientX - monkey.size/2;
+});
+
+document.addEventListener("touchmove", e => {
+    let touch = e.touches[0];
+    monkey.x = touch.clientX - monkey.size/2;
+});
+
+// DIBUJAR FONDO
+function drawBackground() {
+    ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+}
+
+// DIBUJAR MONO + BATE
+function drawMonkey() {
+    let x = monkey.x;
+    let y = monkey.y;
+    let s = monkey.size;
+
+    // sprite
+    ctx.drawImage(monkeyImg, x, y, s, s);
+
+    // bate animado
+    ctx.save();
+
+    // AJUSTA ESTO si no coincide con la mano
+    ctx.translate(x + s*0.65, y + s*0.70);
+
+    if (monkey.swinging) {
+        monkey.swing += 0.15;
+        if (monkey.swing > 1.2) monkey.swinging = false;
+    } else {
+        monkey.swing *= 0.8;
+    }
+
+    let angle = -0.5 + Math.sin(monkey.swing) * 1.2;
+    ctx.rotate(angle);
+
+    // brazo
+    ctx.strokeStyle = "#5a381f";
+    ctx.lineWidth = 12;
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.lineTo(50,-30);
+    ctx.stroke();
+
+    // bate
+    ctx.strokeStyle = "#f5deb3";
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.moveTo(50,-30);
+    ctx.lineTo(110,-70);
+    ctx.stroke();
+
+    ctx.restore();
+}
+
+// PELOTA
+function drawBall() {
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2);
+    ctx.fillStyle = "white";
+    ctx.fill();
+}
+
+// COLISIÓN
+function collision() {
+    return (
+        ball.y + ball.radius > monkey.y &&
+        ball.x > monkey.x &&
+        ball.x < monkey.x + monkey.size
+    );
+}
+
+// EFECTO HIT
+function hitEffect() {
+    ctx.fillStyle = "rgba(255,255,255,0.25)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+}
+
+// LOOP
+function update() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    drawBackground();
+    drawMonkey();
+    drawBall();
+
+    if (!ball.hit) {
+        ball.y += ball.speedY;
+    } else {
+        ball.y -= 10;
+        ball.x += ball.speedX;
+        hitEffect();
+    }
+
+    if (collision() && !ball.hit) {
+        monkey.swinging = true;
+        ball.hit = true;
+        ball.speedX = (Math.random() - 0.5) * 12;
+
+        setTimeout(() => {
+            document.getElementById("mensaje").style.display = "block";
+        }, 500);
+    }
+
+    if (ball.y > canvas.height) {
+        resetBall();
+    }
+
+    requestAnimationFrame(update);
+}
+
+// RESET
+function resetBall() {
+    ball.x = Math.random() * canvas.width;
+    ball.y = -50;
+    ball.hit = false;
+    ball.speedX = 0;
+}
+
+update();
+</script>
+
+</body>
+</html>
