@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Invitación ⚾</title>
 
 <style>
@@ -10,6 +10,7 @@ body {
     margin: 0;
     overflow: hidden;
     font-family: 'Segoe UI', sans-serif;
+    background: black;
 }
 
 /* TEXTOS */
@@ -20,6 +21,7 @@ body {
     color: white;
     text-shadow: 0 0 20px rgba(0,0,0,0.8);
     display: none;
+    z-index: 10;
 }
 
 #instruccion {
@@ -43,17 +45,19 @@ body {
     top: 55%;
     width: 100%;
     text-align: center;
-    display: none; /* ✅ CLAVE: oculto desde el inicio */
+    display: none;
+    z-index: 10;
 }
 
 button {
     font-size: 20px;
     padding: 12px 24px;
-    border-radius: 12px;
+    border-radius: 14px;
     border: none;
     cursor: pointer;
     margin: 10px;
     background: #ffcc00;
+    touch-action: manipulation;
 }
 
 button:hover {
@@ -63,6 +67,14 @@ button:hover {
 /* BOTÓN NO */
 #btnNo {
     position: absolute;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    #instruccion { font-size: 24px; padding: 0 15px; }
+    #mensaje { font-size: 26px; padding: 0 15px; }
+    #festejo { font-size: 30px; padding: 0 15px; }
+    button { font-size: 18px; padding: 10px 20px; }
 }
 </style>
 </head>
@@ -90,8 +102,14 @@ button:hover {
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+/* CANVAS RESPONSIVE */
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    monkey.y = canvas.height - 180;
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
 
 /* IMÁGENES */
 const monkeyImg = new Image();
@@ -124,6 +142,11 @@ document.addEventListener("mousemove", e => {
     monkey.x = e.clientX - monkey.size / 2;
 });
 
+document.addEventListener("touchmove", e => {
+    monkey.x = e.touches[0].clientX - monkey.size / 2;
+    monkey.x = Math.max(0, Math.min(canvas.width - monkey.size, monkey.x));
+});
+
 /* DIBUJOS */
 function drawBackground() {
     ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
@@ -139,9 +162,7 @@ function drawMonkey() {
     if (monkey.swinging) {
         monkey.swing += 0.15;
         if (monkey.swing > 1.2) monkey.swinging = false;
-    } else {
-        monkey.swing *= 0.8;
-    }
+    } else monkey.swing *= 0.8;
 
     ctx.rotate(-0.5 + Math.sin(monkey.swing) * 1.2);
 
@@ -213,12 +234,14 @@ function aceptar() {
     document.getElementById("festejo").style.display = "block";
 }
 
-/* BOTÓN NO SE ESCAPA */
+/* BOTÓN NO ESCAPISTA PC + MÓVIL */
 const btnNo = document.getElementById("btnNo");
-btnNo.addEventListener("mouseenter", () => {
-    btnNo.style.left = Math.random() * (window.innerWidth - 100) + "px";
-    btnNo.style.top = Math.random() * (window.innerHeight - 60) + "px";
-});
+function moverNo() {
+    btnNo.style.left = Math.random() * (window.innerWidth - 120) + "px";
+    btnNo.style.top  = Math.random() * (window.innerHeight - 80) + "px";
+}
+btnNo.addEventListener("mouseenter", moverNo);
+btnNo.addEventListener("touchstart", moverNo);
 
 /* REINICIAR */
 function reiniciar() {
@@ -230,9 +253,11 @@ function reiniciar() {
     iniciarJuego();
 }
 
+/* START */
 update();
 iniciarJuego();
 </script>
 
 </body>
 </html>
+``
