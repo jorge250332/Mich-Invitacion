@@ -12,28 +12,78 @@ body {
     font-family: 'Segoe UI', sans-serif;
 }
 
-#mensaje {
+/* TEXTOS */
+#instruccion, #mensaje, #festejo {
     position: absolute;
-    top: 40%;
     width: 100%;
     text-align: center;
-    font-size: 38px;
     color: white;
-    display: none;
-    animation: fadeIn 1s ease forwards;
     text-shadow: 0 0 20px rgba(0,0,0,0.8);
+    display: none;
 }
 
-@keyframes fadeIn {
-    from {opacity:0; transform: scale(0.8);}
-    to {opacity:1; transform: scale(1);}
+#instruccion {
+    top: 35%;
+    font-size: 34px;
+}
+
+#mensaje {
+    top: 30%;
+    font-size: 36px;
+}
+
+#festejo {
+    top: 40%;
+    font-size: 40px;
+}
+
+/* BOTONES */
+#opciones {
+    position: absolute;
+    top: 55%;
+    width: 100%;
+    text-align: center;
+    display: none; /* ✅ CLAVE: oculto desde el inicio */
+}
+
+button {
+    font-size: 20px;
+    padding: 12px 24px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    margin: 10px;
+    background: #ffcc00;
+}
+
+button:hover {
+    background: #ffd84d;
+}
+
+/* BOTÓN NO */
+#btnNo {
+    position: absolute;
 }
 </style>
 </head>
 
 <body>
 
-<div id="mensaje">Mich… ¿vemos el partido juntos? </div>
+<div id="instruccion">🎯 Intenta golpear la bola</div>
+
+<div id="mensaje">⚾ ¡Gol perfecto! ¿Vemos el partido juntos?</div>
+
+<div id="opciones">
+    <button onclick="aceptar()">🎉 ¡Sí!</button>
+    <button id="btnNo">❌ No</button>
+</div>
+
+<div id="festejo">
+    🎉 ¡Sabía que dirías que sí! 🎉
+    <br><br>
+    <button onclick="reiniciar()">🔄 Reiniciar</button>
+</div>
+
 <canvas id="game"></canvas>
 
 <script>
@@ -43,14 +93,14 @@ const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-// IMÁGENES
+/* IMÁGENES */
 const monkeyImg = new Image();
 monkeyImg.src = "mono.png";
 
 const bgImg = new Image();
 bgImg.src = "Fondo.png";
 
-// MONO
+/* MONO */
 let monkey = {
     x: canvas.width / 2,
     y: canvas.height - 180,
@@ -59,45 +109,32 @@ let monkey = {
     swinging: false
 };
 
-// PELOTA
+/* PELOTA */
 let ball = {
     x: Math.random() * canvas.width,
     y: -50,
     radius: 12,
     speedY: 6,
-    speedX: 0,
-    hit: false
+    hit: false,
+    active: false
 };
 
-// CONTROLES (mouse + touch)
+/* CONTROLES */
 document.addEventListener("mousemove", e => {
-    monkey.x = e.clientX - monkey.size/2;
+    monkey.x = e.clientX - monkey.size / 2;
 });
 
-document.addEventListener("touchmove", e => { 
-    let touch = e.touches[0];
-    monkey.x = touch.clientX - monkey.size/2;
-});
-
-// DIBUJAR FONDO
+/* DIBUJOS */
 function drawBackground() {
     ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 }
 
-// DIBUJAR MONO + BATE
 function drawMonkey() {
-    let x = monkey.x;
-    let y = monkey.y;
-    let s = monkey.size;
-
-    // sprite
+    const x = monkey.x, y = monkey.y, s = monkey.size;
     ctx.drawImage(monkeyImg, x, y, s, s);
 
-    // bate animado
     ctx.save();
-
-    // AJUSTA ESTO si no coincide con la mano
-    ctx.translate(x + s*0.65, y + s*0.70);
+    ctx.translate(x + s*0.65, y + s*0.7);
 
     if (monkey.swinging) {
         monkey.swing += 0.15;
@@ -106,10 +143,8 @@ function drawMonkey() {
         monkey.swing *= 0.8;
     }
 
-    let angle = -0.5 + Math.sin(monkey.swing) * 1.2;
-    ctx.rotate(angle);
+    ctx.rotate(-0.5 + Math.sin(monkey.swing) * 1.2);
 
-    // brazo
     ctx.strokeStyle = "#5a381f";
     ctx.lineWidth = 12;
     ctx.beginPath();
@@ -117,7 +152,6 @@ function drawMonkey() {
     ctx.lineTo(50,-30);
     ctx.stroke();
 
-    // bate
     ctx.strokeStyle = "#f5deb3";
     ctx.lineWidth = 8;
     ctx.beginPath();
@@ -128,15 +162,14 @@ function drawMonkey() {
     ctx.restore();
 }
 
-// PELOTA
 function drawBall() {
+    if (!ball.active) return;
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2);
     ctx.fillStyle = "white";
     ctx.fill();
 }
 
-// COLISIÓN
 function collision() {
     return (
         ball.y + ball.radius > monkey.y &&
@@ -145,54 +178,60 @@ function collision() {
     );
 }
 
-// EFECTO HIT
-function hitEffect() {
-    ctx.fillStyle = "rgba(255,255,255,0.25)";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-}
-
-// LOOP
+/* LOOP */
 function update() {
     ctx.clearRect(0,0,canvas.width,canvas.height);
-
     drawBackground();
     drawMonkey();
     drawBall();
 
-    if (!ball.hit) {
-        ball.y += ball.speedY;
-    } else {
-        ball.y -= 10;
-        ball.x += ball.speedX;
-        hitEffect();
-    }
+    if (ball.active && !ball.hit) ball.y += ball.speedY;
 
-    if (collision() && !ball.hit) {
+    if (ball.active && !ball.hit && collision()) {
         monkey.swinging = true;
         ball.hit = true;
-        ball.speedX = (Math.random() - 0.5) * 12;
-
-        setTimeout(() => {
-            document.getElementById("mensaje").style.display = "block";
-        }, 500);
-    }
-
-    if (ball.y > canvas.height) {
-        resetBall();
+        document.getElementById("mensaje").style.display = "block";
+        document.getElementById("opciones").style.display = "block";
     }
 
     requestAnimationFrame(update);
 }
 
-// RESET
-function resetBall() {
+/* INICIO */
+function iniciarJuego() {
+    document.getElementById("instruccion").style.display = "block";
+    setTimeout(() => {
+        document.getElementById("instruccion").style.display = "none";
+        ball.active = true;
+    }, 5000);
+}
+
+/* BOTÓN SÍ */
+function aceptar() {
+    document.getElementById("mensaje").style.display = "none";
+    document.getElementById("opciones").style.display = "none";
+    document.getElementById("festejo").style.display = "block";
+}
+
+/* BOTÓN NO SE ESCAPA */
+const btnNo = document.getElementById("btnNo");
+btnNo.addEventListener("mouseenter", () => {
+    btnNo.style.left = Math.random() * (window.innerWidth - 100) + "px";
+    btnNo.style.top = Math.random() * (window.innerHeight - 60) + "px";
+});
+
+/* REINICIAR */
+function reiniciar() {
     ball.x = Math.random() * canvas.width;
     ball.y = -50;
     ball.hit = false;
-    ball.speedX = 0;
+    ball.active = false;
+    document.getElementById("festejo").style.display = "none";
+    iniciarJuego();
 }
 
 update();
+iniciarJuego();
 </script>
 
 </body>
